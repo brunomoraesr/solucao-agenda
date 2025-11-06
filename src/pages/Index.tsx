@@ -57,12 +57,13 @@ const generateTimeSlots = (
   const slots: TimeSlot[] = [];
   const startHour = period === "morning" ? 8 : 14;
   const startMinute = period === "morning" ? 30 : 30;
-  const endHour = period === "morning" ? 12 : 18;
+  const maxSlots = period === "morning" ? 4 : 8; // 4 slots de manhã, 8 à tarde
 
   let currentHour = startHour;
   let currentMinute = startMinute;
+  let slotCount = 0;
 
-  while (currentHour < endHour || (currentHour === endHour && currentMinute === 0)) {
+  while (slotCount < maxSlots) {
     const timeString = `${currentHour.toString().padStart(2, "0")}:${currentMinute.toString().padStart(2, "0")}`;
     
     // Check if pilates is only at 11h
@@ -87,6 +88,7 @@ const generateTimeSlots = (
     });
 
     slots.push({ time: timeString, availableFor });
+    slotCount++;
 
     currentMinute += 45;
     if (currentMinute >= 60) {
