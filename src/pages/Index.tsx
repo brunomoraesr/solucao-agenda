@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Calendar, Clock, User, Mail, Phone, CheckCircle2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Calendar, Clock, User, Mail, Phone, CheckCircle2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,25 +7,53 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
+type SessionType = "escalda-pes" | "pilates" | "massagem" | "acupuntura";
+
+type Professional = "Cleane" | "Lia";
+
 type DaySchedule = {
   day: string;
   dayOfWeek: number;
   periods: ("morning" | "afternoon")[];
+  sessionTypes: SessionType[];
+  pilatesOnlyAt11?: boolean;
 };
 
 type TimeSlot = {
   time: string;
-  available: boolean;
+  availableFor: Professional[];
+};
+
+type Booking = {
+  day: string;
+  period: "morning" | "afternoon";
+  time: string;
+  professional: Professional;
+  sessionType: SessionType;
 };
 
 const availableSchedule: DaySchedule[] = [
-  { day: "Segunda-feira", dayOfWeek: 1, periods: ["morning"] },
-  { day: "Terça-feira", dayOfWeek: 2, periods: ["afternoon"] },
-  { day: "Quarta-feira", dayOfWeek: 3, periods: ["morning"] },
-  { day: "Quinta-feira", dayOfWeek: 4, periods: ["morning", "afternoon"] },
+  { day: "Segunda-feira", dayOfWeek: 1, periods: ["morning"], sessionTypes: ["escalda-pes"] },
+  { day: "Terça-feira", dayOfWeek: 2, periods: ["morning", "afternoon"], sessionTypes: ["pilates", "massagem"], pilatesOnlyAt11: true },
+  { day: "Quarta-feira", dayOfWeek: 3, periods: ["morning"], sessionTypes: ["massagem", "acupuntura"] },
+  { day: "Quinta-feira", dayOfWeek: 4, periods: ["morning", "afternoon"], sessionTypes: ["escalda-pes", "pilates", "massagem"], pilatesOnlyAt11: true },
 ];
 
-const generateTimeSlots = (period: "morning" | "afternoon"): TimeSlot[] => {
+const sessionTypeLabels: Record<SessionType, string> = {
+  "escalda-pes": "Escalda-Pés",
+  "pilates": "Pilates",
+  "massagem": "Massagem",
+  "acupuntura": "Acupuntura",
+};
+
+const professionals: Professional[] = ["Cleane", "Lia"];
+
+const generateTimeSlots = (
+  period: "morning" | "afternoon",
+  day: DaySchedule,
+  sessionType: SessionType | null,
+  bookings: Booking[]
+): TimeSlot[] => {
   const slots: TimeSlot[] = [];
   const startHour = period === "morning" ? 8 : 14;
   const startMinute = period === "morning" ? 30 : 30;
@@ -36,7 +64,29 @@ const generateTimeSlots = (period: "morning" | "afternoon"): TimeSlot[] => {
 
   while (currentHour < endHour || (currentHour === endHour && currentMinute === 0)) {
     const timeString = `${currentHour.toString().padStart(2, "0")}:${currentMinute.toString().padStart(2, "0")}`;
-    slots.push({ time: timeString, available: true });
+    
+    // Check if pilates is only at 11h
+    if (sessionType === "pilates" && day.pilatesOnlyAt11 && timeString !== "11:00") {
+      currentMinute += 45;
+      if (currentMinute >= 60) {
+        currentHour += Math.floor(currentMinute / 60);
+        currentMinute = currentMinute % 60;
+      }
+      continue;
+    }
+
+    // Check which professionals are available for this slot
+    const availableFor: Professional[] = professionals.filter((prof) => {
+      return !bookings.some(
+        (booking) =>
+          booking.day === day.day &&
+          booking.period === period &&
+          booking.time === timeString &&
+          booking.professional === prof
+      );
+    });
+
+    slots.push({ time: timeString, availableFor });
 
     currentMinute += 45;
     if (currentMinute >= 60) {
@@ -49,22 +99,55 @@ const generateTimeSlots = (period: "morning" | "afternoon"): TimeSlot[] => {
 };
 
 const Index = () => {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [selectedDay, setSelectedDay] = useState<DaySchedule | null>(null);
+  const [selectedSessionType, setSelectedSessionType] = useState<SessionType | null>(null);
+  const [selectedProfessional, setSelectedProfessional] = useState<Professional | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<"morning" | "afternoon" | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
   });
 
+  useEffect(() => {
+    const savedBookings = localStorage.getItem("bookings");
+    if (savedBookings) {
+      setBookings(JSON.parse(savedBookings));
+    }
+  }, []);
+
   const handleDaySelect = (day: DaySchedule) => {
     setSelectedDay(day);
+    setSelectedSessionType(null);
+    setSelectedProfessional(null);
     setSelectedPeriod(null);
     setSelectedTime(null);
-    setStep(2);
+    
+    if (day.sessionTypes.length === 1) {
+      setSelectedSessionType(day.sessionTypes[0]);
+      setStep(3);
+    } else {
+      setStep(2);
+    }
+  };
+
+  const handleSessionTypeSelect = (sessionType: SessionType) => {
+    setSelectedSessionType(sessionType);
+    setSelectedProfessional(null);
+    setSelectedPeriod(null);
+    setSelectedTime(null);
+    setStep(3);
+  };
+
+  const handleProfessionalSelect = (professional: Professional) => {
+    setSelectedProfessional(professional);
+    setSelectedPeriod(null);
+    setSelectedTime(null);
+    setStep(4);
   };
 
   const handlePeriodSelect = (period: "morning" | "afternoon") => {
@@ -74,7 +157,7 @@ const Index = () => {
 
   const handleTimeSelect = (time: string) => {
     setSelectedTime(time);
-    setStep(3);
+    setStep(5);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -85,21 +168,72 @@ const Index = () => {
       return;
     }
 
+    if (!selectedDay || !selectedSessionType || !selectedProfessional || !selectedPeriod || !selectedTime) {
+      toast.error("Por favor, complete todas as seleções");
+      return;
+    }
+
+    const newBooking: Booking = {
+      day: selectedDay.day,
+      period: selectedPeriod,
+      time: selectedTime,
+      professional: selectedProfessional,
+      sessionType: selectedSessionType,
+    };
+
+    const updatedBookings = [...bookings, newBooking];
+    setBookings(updatedBookings);
+    localStorage.setItem("bookings", JSON.stringify(updatedBookings));
+
     setShowConfirmation(true);
     
-    // Reset form after 3 seconds
     setTimeout(() => {
       setShowConfirmation(false);
       setStep(1);
       setSelectedDay(null);
+      setSelectedSessionType(null);
+      setSelectedProfessional(null);
       setSelectedPeriod(null);
       setSelectedTime(null);
       setFormData({ name: "", email: "", phone: "" });
     }, 3000);
   };
 
+  const getAvailableSessionTypes = (): SessionType[] => {
+    if (!selectedDay) return [];
+    
+    if (selectedDay.day === "Terça-feira") {
+      return selectedDay.periods.map((p) =>
+        p === "morning" ? "pilates" : "massagem"
+      ) as SessionType[];
+    }
+    
+    if (selectedDay.day === "Quinta-feira") {
+      if (selectedDay.periods.includes("morning") && selectedDay.periods.includes("afternoon")) {
+        return ["escalda-pes", "pilates", "massagem"] as SessionType[];
+      }
+    }
+    
+    return selectedDay.sessionTypes;
+  };
+
+  const getAvailablePeriodsForSession = (): ("morning" | "afternoon")[] => {
+    if (!selectedDay || !selectedSessionType) return selectedDay?.periods || [];
+    
+    if (selectedDay.day === "Terça-feira") {
+      return selectedSessionType === "pilates" ? (["morning"] as const) : (["afternoon"] as const);
+    }
+    
+    if (selectedDay.day === "Quinta-feira") {
+      if (selectedSessionType === "massagem") return ["afternoon"] as const;
+      return ["morning"] as const;
+    }
+    
+    return selectedDay.periods;
+  };
+
   const periodLabel = selectedPeriod === "morning" ? "Manhã" : "Tarde";
-  const timeSlots = selectedPeriod ? generateTimeSlots(selectedPeriod) : [];
+  const timeSlots = selectedPeriod && selectedDay ? generateTimeSlots(selectedPeriod, selectedDay, selectedSessionType, bookings) : [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/30 to-accent/10">
@@ -118,12 +252,12 @@ const Index = () => {
         </div>
 
         {/* Progress Steps */}
-        <div className="max-w-3xl mx-auto mb-8">
-          <div className="flex items-center justify-center gap-4">
-            {[1, 2, 3].map((s) => (
+        <div className="max-w-4xl mx-auto mb-8">
+          <div className="flex items-center justify-center gap-2">
+            {[1, 2, 3, 4, 5].map((s) => (
               <div key={s} className="flex items-center">
                 <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all duration-300 ${
+                  className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
                     step >= s
                       ? "bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-elegant scale-110"
                       : "bg-muted text-muted-foreground"
@@ -131,9 +265,9 @@ const Index = () => {
                 >
                   {s}
                 </div>
-                {s < 3 && (
+                {s < 5 && (
                   <div
-                    className={`w-16 h-1 mx-2 rounded-full transition-all duration-300 ${
+                    className={`w-12 h-1 mx-1 rounded-full transition-all duration-300 ${
                       step > s ? "bg-gradient-to-r from-primary to-accent" : "bg-muted"
                     }`}
                   />
@@ -141,10 +275,12 @@ const Index = () => {
               </div>
             ))}
           </div>
-          <div className="flex justify-between mt-3 text-sm font-medium">
+          <div className="flex justify-between mt-3 text-xs font-medium px-2">
             <span className={step >= 1 ? "text-primary" : "text-muted-foreground"}>Dia</span>
-            <span className={step >= 2 ? "text-primary" : "text-muted-foreground"}>Horário</span>
-            <span className={step >= 3 ? "text-primary" : "text-muted-foreground"}>Dados</span>
+            <span className={step >= 2 ? "text-primary" : "text-muted-foreground"}>Sessão</span>
+            <span className={step >= 3 ? "text-primary" : "text-muted-foreground"}>Profissional</span>
+            <span className={step >= 4 ? "text-primary" : "text-muted-foreground"}>Horário</span>
+            <span className={step >= 5 ? "text-primary" : "text-muted-foreground"}>Dados</span>
           </div>
         </div>
 
@@ -166,15 +302,18 @@ const Index = () => {
                     <div className="font-semibold text-lg mb-2 group-hover:text-primary transition-colors">
                       {day.day}
                     </div>
-                    <div className="flex gap-2 flex-wrap">
+                    <div className="flex gap-2 flex-wrap mb-2">
                       {day.periods.map((period) => (
                         <span
                           key={period}
-                          className="px-3 py-1 rounded-full text-sm font-medium bg-accent/10 text-accent border border-accent/20"
+                          className="px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20"
                         >
                           {period === "morning" ? "Manhã" : "Tarde"}
                         </span>
                       ))}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {day.sessionTypes.map((type) => sessionTypeLabels[type]).join(", ")}
                     </div>
                   </button>
                 ))}
@@ -183,7 +322,7 @@ const Index = () => {
           </div>
         )}
 
-        {/* Step 2: Time Selection */}
+        {/* Step 2: Session Type Selection */}
         {step === 2 && selectedDay && (
           <div className="max-w-4xl mx-auto animate-in slide-in-from-bottom duration-500">
             <Card className="p-8 shadow-soft border-border/50 backdrop-blur-sm bg-card/80">
@@ -196,16 +335,91 @@ const Index = () => {
                   ← Voltar
                 </Button>
                 <h2 className="text-2xl font-semibold flex items-center gap-2">
-                  <Clock className="w-6 h-6 text-primary" />
-                  {selectedDay.day}
+                  <Calendar className="w-6 h-6 text-primary" />
+                  Tipo de Sessão
                 </h2>
+                <p className="text-muted-foreground mt-2">{selectedDay.day}</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {getAvailableSessionTypes().map((sessionType) => (
+                  <Button
+                    key={sessionType}
+                    onClick={() => handleSessionTypeSelect(sessionType)}
+                    variant="outline"
+                    className="h-20 text-lg font-semibold hover:border-primary hover:bg-primary/5 transition-all duration-300 hover:scale-105"
+                  >
+                    {sessionTypeLabels[sessionType]}
+                  </Button>
+                ))}
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* Step 3: Professional Selection */}
+        {step === 3 && selectedDay && selectedSessionType && (
+          <div className="max-w-4xl mx-auto animate-in slide-in-from-bottom duration-500">
+            <Card className="p-8 shadow-soft border-border/50 backdrop-blur-sm bg-card/80">
+              <div className="mb-6">
+                <Button
+                  variant="ghost"
+                  onClick={() => setStep(selectedDay.sessionTypes.length === 1 ? 1 : 2)}
+                  className="mb-4 hover:bg-primary/10"
+                >
+                  ← Voltar
+                </Button>
+                <h2 className="text-2xl font-semibold flex items-center gap-2">
+                  <Users className="w-6 h-6 text-primary" />
+                  Escolha a Profissional
+                </h2>
+                <p className="text-muted-foreground mt-2">
+                  {selectedDay.day} • {sessionTypeLabels[selectedSessionType]}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {professionals.map((professional) => (
+                  <Button
+                    key={professional}
+                    onClick={() => handleProfessionalSelect(professional)}
+                    variant="outline"
+                    className="h-24 text-xl font-semibold hover:border-accent hover:bg-accent/5 transition-all duration-300 hover:scale-105"
+                  >
+                    {professional}
+                  </Button>
+                ))}
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* Step 4: Time Selection */}
+        {step === 4 && selectedDay && selectedProfessional && (
+          <div className="max-w-4xl mx-auto animate-in slide-in-from-bottom duration-500">
+            <Card className="p-8 shadow-soft border-border/50 backdrop-blur-sm bg-card/80">
+              <div className="mb-6">
+                <Button
+                  variant="ghost"
+                  onClick={() => setStep(3)}
+                  className="mb-4 hover:bg-primary/10"
+                >
+                  ← Voltar
+                </Button>
+                <h2 className="text-2xl font-semibold flex items-center gap-2">
+                  <Clock className="w-6 h-6 text-primary" />
+                  Selecione o Horário
+                </h2>
+                <p className="text-muted-foreground mt-2">
+                  {selectedDay.day} • {sessionTypeLabels[selectedSessionType!]} • {selectedProfessional}
+                </p>
               </div>
 
               {/* Period Selection */}
               <div className="mb-6">
                 <Label className="text-base mb-3 block">Período</Label>
                 <div className="flex gap-3">
-                  {selectedDay.periods.map((period) => (
+                  {getAvailablePeriodsForSession().map((period) => (
                     <Button
                       key={period}
                       onClick={() => handlePeriodSelect(period)}
@@ -225,38 +439,50 @@ const Index = () => {
               {/* Time Slots */}
               {selectedPeriod && (
                 <div className="animate-in fade-in duration-500">
-                  <Label className="text-base mb-3 block">Horário disponível</Label>
+                  <Label className="text-base mb-3 block">
+                    Horários disponíveis para {selectedProfessional}
+                  </Label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    {timeSlots.map((slot) => (
-                      <Button
-                        key={slot.time}
-                        onClick={() => handleTimeSelect(slot.time)}
-                        variant={selectedTime === slot.time ? "default" : "outline"}
-                        disabled={!slot.available}
-                        className={`h-14 text-base font-semibold transition-all duration-300 ${
-                          selectedTime === slot.time
-                            ? "shadow-elegant scale-105"
-                            : "hover:border-accent hover:bg-accent/5"
-                        }`}
-                      >
-                        {slot.time}
-                      </Button>
-                    ))}
+                    {timeSlots.map((slot) => {
+                      const isAvailable = slot.availableFor.includes(selectedProfessional!);
+                      return (
+                        <Button
+                          key={slot.time}
+                          onClick={() => handleTimeSelect(slot.time)}
+                          variant={selectedTime === slot.time ? "default" : "outline"}
+                          disabled={!isAvailable}
+                          className={`h-14 text-base font-semibold transition-all duration-300 ${
+                            selectedTime === slot.time
+                              ? "shadow-elegant scale-105"
+                              : isAvailable
+                              ? "hover:border-accent hover:bg-accent/5"
+                              : "opacity-50 cursor-not-allowed"
+                          }`}
+                        >
+                          {slot.time}
+                        </Button>
+                      );
+                    })}
                   </div>
+                  {timeSlots.every((slot) => !slot.availableFor.includes(selectedProfessional!)) && (
+                    <p className="text-center text-muted-foreground mt-4">
+                      Nenhum horário disponível para esta profissional neste período.
+                    </p>
+                  )}
                 </div>
               )}
             </Card>
           </div>
         )}
 
-        {/* Step 3: User Information */}
-        {step === 3 && (
+        {/* Step 5: User Information */}
+        {step === 5 && (
           <div className="max-w-2xl mx-auto animate-in slide-in-from-bottom duration-500">
             <Card className="p-8 shadow-soft border-border/50 backdrop-blur-sm bg-card/80">
               <div className="mb-6">
                 <Button
                   variant="ghost"
-                  onClick={() => setStep(2)}
+                  onClick={() => setStep(4)}
                   className="mb-4 hover:bg-primary/10"
                 >
                   ← Voltar
@@ -265,9 +491,12 @@ const Index = () => {
                   <User className="w-6 h-6 text-primary" />
                   Seus dados
                 </h2>
-                <div className="p-4 rounded-lg bg-accent/10 border border-accent/20">
+                <div className="p-4 rounded-lg bg-accent/10 border border-accent/20 space-y-1">
                   <p className="text-sm font-medium text-accent">
                     {selectedDay?.day} • {periodLabel} • {selectedTime}
+                  </p>
+                  <p className="text-sm font-medium text-accent">
+                    {sessionTypeLabels[selectedSessionType!]} • {selectedProfessional}
                   </p>
                 </div>
               </div>
@@ -355,8 +584,8 @@ const Index = () => {
             </p>
             <div className="p-4 rounded-lg bg-accent/10 border border-accent/20 space-y-1">
               <p className="font-semibold text-accent">{formData.name}</p>
-              <p className="text-sm">{selectedDay?.day}</p>
-              <p className="text-sm">{periodLabel} • {selectedTime}</p>
+              <p className="text-sm">{selectedDay?.day} • {periodLabel} • {selectedTime}</p>
+              <p className="text-sm">{sessionTypeLabels[selectedSessionType!]} • {selectedProfessional}</p>
             </div>
             <p className="text-sm text-muted-foreground">
               Você receberá uma confirmação no email cadastrado.
