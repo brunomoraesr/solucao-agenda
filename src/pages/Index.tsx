@@ -1,10 +1,25 @@
 import { useState, useEffect, Fragment } from "react";
-import { Calendar, Clock, User, Mail, Phone, CheckCircle2, Users, ArrowLeft } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  User,
+  Mail,
+  Phone,
+  CheckCircle2,
+  Users,
+  ArrowLeft,
+  Hash, // Ícone adicionado
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 type SessionType = "escalda-pes" | "pilates" | "massagem" | "acupuntura";
@@ -33,17 +48,39 @@ type Booking = {
 };
 
 const availableSchedule: DaySchedule[] = [
-  { day: "Segunda-feira", dayOfWeek: 1, periods: ["morning"], sessionTypes: ["escalda-pes"] },
-  { day: "Terça-feira", dayOfWeek: 2, periods: ["morning", "afternoon"], sessionTypes: ["pilates", "massagem"], pilatesOnlyAt11: true },
-  { day: "Quarta-feira", dayOfWeek: 3, periods: ["morning"], sessionTypes: ["massagem", "acupuntura"] },
-  { day: "Quinta-feira", dayOfWeek: 4, periods: ["morning", "afternoon"], sessionTypes: ["escalda-pes", "pilates", "massagem"], pilatesOnlyAt11: true },
+  {
+    day: "Segunda-feira",
+    dayOfWeek: 1,
+    periods: ["morning"],
+    sessionTypes: ["escalda-pes"],
+  },
+  {
+    day: "Terça-feira",
+    dayOfWeek: 2,
+    periods: ["morning", "afternoon"],
+    sessionTypes: ["pilates", "massagem"],
+    pilatesOnlyAt11: true,
+  },
+  {
+    day: "Quarta-feira",
+    dayOfWeek: 3,
+    periods: ["morning"],
+    sessionTypes: ["massagem", "acupuntura"],
+  },
+  {
+    day: "Quinta-feira",
+    dayOfWeek: 4,
+    periods: ["morning", "afternoon"],
+    sessionTypes: ["escalda-pes", "pilates", "massagem"],
+    pilatesOnlyAt11: true,
+  },
 ];
 
 const sessionTypeLabels: Record<SessionType, string> = {
   "escalda-pes": "Escalda-Pés",
-  "pilates": "Pilates",
-  "massagem": "Massagem",
-  "acupuntura": "Acupuntura",
+  pilates: "Pilates",
+  massagem: "Massagem",
+  acupuntura: "Acupuntura",
 };
 
 const professionals: Professional[] = ["Cleane", "Lia"];
@@ -52,7 +89,7 @@ const generateTimeSlots = (
   period: "morning" | "afternoon",
   day: DaySchedule,
   sessionType: SessionType | null,
-  bookings: Booking[]
+  bookings: Booking[],
 ): TimeSlot[] => {
   const slots: TimeSlot[] = [];
   const startHour = period === "morning" ? 8 : 14;
@@ -64,10 +101,16 @@ const generateTimeSlots = (
   let slotCount = 0;
 
   while (slotCount < maxSlots) {
-    const timeString = `${currentHour.toString().padStart(2, "0")}:${currentMinute.toString().padStart(2, "0")}`;
+    const timeString = `${currentHour
+      .toString()
+      .padStart(2, "0")}:${currentMinute.toString().padStart(2, "0")}`;
 
     // Check if pilates is only at 11h
-    if (sessionType === "pilates" && day.pilatesOnlyAt11 && timeString !== "11:00") {
+    if (
+      sessionType === "pilates" &&
+      day.pilatesOnlyAt11 &&
+      timeString !== "11:00"
+    ) {
       currentMinute += 45;
       if (currentMinute >= 60) {
         currentHour += Math.floor(currentMinute / 60);
@@ -83,7 +126,7 @@ const generateTimeSlots = (
           booking.day === day.day &&
           booking.period === period &&
           booking.time === timeString &&
-          booking.professional === prof
+          booking.professional === prof,
       );
     });
 
@@ -103,16 +146,22 @@ const generateTimeSlots = (
 const Index = () => {
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [selectedDay, setSelectedDay] = useState<DaySchedule | null>(null);
-  const [selectedSessionType, setSelectedSessionType] = useState<SessionType | null>(null);
-  const [selectedProfessional, setSelectedProfessional] = useState<Professional | null>(null);
-  const [selectedPeriod, setSelectedPeriod] = useState<"morning" | "afternoon" | null>(null);
+  const [selectedSessionType, setSelectedSessionType] =
+    useState<SessionType | null>(null);
+  const [selectedProfessional, setSelectedProfessional] =
+    useState<Professional | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState<
+    "morning" | "afternoon" | null
+  >(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  // Estado do formulário atualizado
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
+    ramal: "", // Novo campo adicionado
   });
 
   useEffect(() => {
@@ -178,16 +227,21 @@ const Index = () => {
     }
   };
 
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.name || !formData.email || !formData.phone) {
-      toast.error("Por favor, preencha todos os campos");
+      toast.error("Por favor, preencha todos os campos obrigatórios (*)");
       return;
     }
 
-    if (!selectedDay || !selectedSessionType || !selectedProfessional || !selectedPeriod || !selectedTime) {
+    if (
+      !selectedDay ||
+      !selectedSessionType ||
+      !selectedProfessional ||
+      !selectedPeriod ||
+      !selectedTime
+    ) {
       toast.error("Por favor, complete todas as seleções");
       return;
     }
@@ -214,7 +268,8 @@ const Index = () => {
       setSelectedProfessional(null);
       setSelectedPeriod(null);
       setSelectedTime(null);
-      setFormData({ name: "", email: "", phone: "" });
+      // Reset do formulário atualizado
+      setFormData({ name: "", email: "", phone: "", ramal: "" });
     }, 3000);
   };
 
@@ -223,12 +278,15 @@ const Index = () => {
 
     if (selectedDay.day === "Terça-feira") {
       return selectedDay.periods.map((p) =>
-        p === "morning" ? "pilates" : "massagem"
+        p === "morning" ? "pilates" : "massagem",
       ) as SessionType[];
     }
 
     if (selectedDay.day === "Quinta-feira") {
-      if (selectedDay.periods.includes("morning") && selectedDay.periods.includes("afternoon")) {
+      if (
+        selectedDay.periods.includes("morning") &&
+        selectedDay.periods.includes("afternoon")
+      ) {
         return ["escalda-pes", "pilates", "massagem"] as SessionType[];
       }
     }
@@ -237,10 +295,13 @@ const Index = () => {
   };
 
   const getAvailablePeriodsForSession = (): ("morning" | "afternoon")[] => {
-    if (!selectedDay || !selectedSessionType) return selectedDay?.periods || [];
+    if (!selectedDay || !selectedSessionType)
+      return selectedDay?.periods || [];
 
     if (selectedDay.day === "Terça-feira") {
-      return selectedSessionType === "pilates" ? (["morning"] as const) : (["afternoon"] as const);
+      return selectedSessionType === "pilates"
+        ? (["morning"] as const)
+        : (["afternoon"] as const);
     }
 
     if (selectedDay.day === "Quinta-feira") {
@@ -252,12 +313,19 @@ const Index = () => {
   };
 
   const periodLabel = selectedPeriod === "morning" ? "Manhã" : "Tarde";
-  const timeSlots = selectedPeriod && selectedDay ? generateTimeSlots(selectedPeriod, selectedDay, selectedSessionType, bookings) : [];
+  const timeSlots =
+    selectedPeriod && selectedDay
+      ? generateTimeSlots(
+          selectedPeriod,
+          selectedDay,
+          selectedSessionType,
+          bookings,
+        )
+      : [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/30 to-accent/10">
       <div className="container mx-auto px-4 py-12 relative">
-
         {step > 1 && (
           <Button
             variant="ghost"
@@ -288,33 +356,46 @@ const Index = () => {
         {/* Progress Steps */}
         <div className="max-w-4xl mx-auto mb-12">
           <div className="flex items-start justify-center px-2">
-            {["Dia", "Sessão", "Profissional", "Horário", "Dados"].map((label, index) => {
-              const s = index + 1;
-              return (
-                <Fragment key={s}>
-                  <div className="flex flex-col items-center text-center" style={{ width: '4.5rem' }}>
+            {["Dia", "Sessão", "Profissional", "Horário", "Dados"].map(
+              (label, index) => {
+                const s = index + 1;
+                return (
+                  <Fragment key={s}>
                     <div
-                      className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${step >= s
-                          ? "bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-elegant scale-110"
-                          : "bg-muted text-muted-foreground"
-                        }`}
+                      className="flex flex-col items-center text-center"
+                      style={{ width: "4.5rem" }}
                     >
-                      {s}
-                    </div>
-                    <span className={`mt-2 text-xs font-medium ${step >= s ? "text-primary" : "text-muted-foreground"}`}>
-                      {label}
-                    </span>
-                  </div>
-                  {s < 5 && (
-                    <div
-                      className={`flex-1 h-1 rounded-full transition-all duration-300 mt-4 ${step > s ? "bg-gradient-to-r from-primary to-accent" : "bg-muted"
+                      <div
+                        className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
+                          step >= s
+                            ? "bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-elegant scale-110"
+                            : "bg-muted text-muted-foreground"
                         }`}
-                      style={{ minWidth: '2rem' }}
-                    />
-                  )}
-                </Fragment>
-              );
-            })}
+                      >
+                        {s}
+                      </div>
+                      <span
+                        className={`mt-2 text-xs font-medium ${
+                          step >= s ? "text-primary" : "text-muted-foreground"
+                        }`}
+                      >
+                        {label}
+                      </span>
+                    </div>
+                    {s < 5 && (
+                      <div
+                        className={`flex-1 h-1 rounded-full transition-all duration-300 mt-4 ${
+                          step > s
+                            ? "bg-gradient-to-r from-primary to-accent"
+                            : "bg-muted"
+                        }`}
+                        style={{ minWidth: "2rem" }}
+                      />
+                    )}
+                  </Fragment>
+                );
+              },
+            )}
           </div>
         </div>
 
@@ -347,7 +428,9 @@ const Index = () => {
                       ))}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {day.sessionTypes.map((type) => sessionTypeLabels[type]).join(", ")}
+                      {day.sessionTypes
+                        .map((type) => sessionTypeLabels[type])
+                        .join(", ")}
                     </div>
                   </button>
                 ))}
@@ -447,7 +530,8 @@ const Index = () => {
                   Selecione o Horário
                 </h2>
                 <p className="text-muted-foreground mt-2">
-                  {selectedDay.day} • {sessionTypeLabels[selectedSessionType!]} • {selectedProfessional}
+                  {selectedDay.day} • {sessionTypeLabels[selectedSessionType!]} •{" "}
+                  {selectedProfessional}
                 </p>
               </div>
 
@@ -459,14 +543,19 @@ const Index = () => {
                     <Button
                       key={period}
                       onClick={() => handlePeriodSelect(period)}
-                      variant={selectedPeriod === period ? "default" : "outline"}
-                      className={`flex-1 h-14 text-base transition-all duration-300 ${selectedPeriod === period
+                      variant={
+                        selectedPeriod === period ? "default" : "outline"
+                      }
+                      className={`flex-1 h-14 text-base transition-all duration-300 ${
+                        selectedPeriod === period
                           ? "shadow-elegant scale-105"
-                          // === AJUSTE DE COR DO TEXTO NO HOVER ===
-                          : "hover:border-primary hover:bg-primary/5 hover:text-primary"
-                        }`}
+                          : // === AJUSTE DE COR DO TEXTO NO HOVER ===
+                            "hover:border-primary hover:bg-primary/5 hover:text-primary"
+                      }`}
                     >
-                      {period === "morning" ? "Manhã (08:30 - 12:00)" : "Tarde (14:30 - 17:30)"}
+                      {period === "morning"
+                        ? "Manhã (08:30 - 12:00)"
+                        : "Tarde (14:30 - 17:30)"}
                     </Button>
                   ))}
                 </div>
@@ -480,29 +569,36 @@ const Index = () => {
                   </Label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                     {timeSlots.map((slot) => {
-                      const isAvailable = slot.availableFor.includes(selectedProfessional!);
+                      const isAvailable =
+                        slot.availableFor.includes(selectedProfessional!);
                       return (
                         <Button
                           key={slot.time}
                           onClick={() => handleTimeSelect(slot.time)}
-                          variant={selectedTime === slot.time ? "default" : "outline"}
+                          variant={
+                            selectedTime === slot.time ? "default" : "outline"
+                          }
                           disabled={!isAvailable}
-                          className={`h-14 text-base font-semibold transition-all duration-300 ${selectedTime === slot.time
+                          className={`h-14 text-base font-semibold transition-all duration-300 ${
+                            selectedTime === slot.time
                               ? "shadow-elegant scale-105"
                               : isAvailable
-                                // === AJUSTE DE COR DO TEXTO NO HOVER (E BORDA) ===
-                                ? "hover:border-primary hover:bg-primary/5 hover:text-primary"
+                                ? // === AJUSTE DE COR DO TEXTO NO HOVER (E BORDA) ===
+                                  "hover:border-primary hover:bg-primary/5 hover:text-primary"
                                 : "opacity-50 cursor-not-allowed"
-                            }`}
+                          }`}
                         >
                           {slot.time}
                         </Button>
                       );
                     })}
                   </div>
-                  {timeSlots.every((slot) => !slot.availableFor.includes(selectedProfessional!)) && (
+                  {timeSlots.every(
+                    (slot) => !slot.availableFor.includes(selectedProfessional!),
+                  ) && (
                     <p className="text-center text-muted-foreground mt-4">
-                      Nenhum horário disponível para esta profissional neste período.
+                      Nenhum horário disponível para esta profissional neste
+                      período.
                     </p>
                   )}
                 </div>
@@ -532,7 +628,8 @@ const Index = () => {
                     {selectedDay?.day} • {periodLabel} • {selectedTime}
                   </p>
                   <p className="text-sm font-medium text-accent">
-                    {sessionTypeLabels[selectedSessionType!]} • {selectedProfessional}
+                    {sessionTypeLabels[selectedSessionType!]} •{" "}
+                    {selectedProfessional}
                   </p>
                 </div>
               </div>
@@ -547,7 +644,9 @@ const Index = () => {
                     <Input
                       id="name"
                       value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
                       className="pl-11 h-12 border-border focus:border-primary transition-colors"
                       placeholder="Seu nome"
                       required
@@ -565,7 +664,9 @@ const Index = () => {
                       id="email"
                       type="email"
                       value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, email: e.target.value })
+                      }
                       className="pl-11 h-12 border-border focus:border-primary transition-colors"
                       placeholder="seu@email.com"
                       required
@@ -583,13 +684,42 @@ const Index = () => {
                       id="phone"
                       type="tel"
                       value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, phone: e.target.value })
+                      }
                       className="pl-11 h-12 border-border focus:border-primary transition-colors"
                       placeholder="(00) 00000-0000"
                       required
                     />
                   </div>
                 </div>
+
+                {/* === NOVO CAMPO RAMAL ADICIONADO === */}
+                <div>
+                  <Label htmlFor="ramal" className="text-base">
+                    Ramal 
+                  </Label>
+                  <div className="relative mt-2">
+                    <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Input
+                      id="ramal"
+                      type="tel" // 'tel' é bom para abrir teclado numérico em mobile
+                      value={formData.ramal}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          // Garante que apenas números sejam inseridos
+                          ramal: e.target.value.replace(/\D/g, ""),
+                        })
+                      }
+                      className="pl-11 h-12 border-border focus:border-primary transition-colors"
+                      placeholder="0000"
+                      maxLength={4} // Limita a 4 dígitos
+                      pattern="[0-9]{4}" // Validação HTML (embora o onChange já filtre)
+                    />
+                  </div>
+                </div>
+                {/* === FIM DO NOVO CAMPO === */}
 
                 <Button
                   type="submit"
@@ -611,7 +741,9 @@ const Index = () => {
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-accent to-accent/70 flex items-center justify-center mb-4 animate-in zoom-in duration-500">
                 <CheckCircle2 className="w-10 h-10 text-white" />
               </div>
-              <DialogTitle className="text-2xl">Agendamento Confirmado!</DialogTitle>
+              <DialogTitle className="text-2xl">
+                Agendamento Confirmado!
+              </DialogTitle>
             </div>
           </DialogHeader>
           <div className="text-center space-y-3 py-4">
@@ -620,8 +752,13 @@ const Index = () => {
             </p>
             <div className="p-4 rounded-lg bg-accent/10 border border-accent/20 space-y-1">
               <p className="font-semibold text-accent">{formData.name}</p>
-              <p className="text-sm">{selectedDay?.day} • {periodLabel} • {selectedTime}</p>
-              <p className="text-sm">{sessionTypeLabels[selectedSessionType!]} • {selectedProfessional}</p>
+              <p className="text-sm">
+                {selectedDay?.day} • {periodLabel} • {selectedTime}
+              </p>
+              <p className="text-sm">
+                {sessionTypeLabels[selectedSessionType!]} •{" "}
+                {selectedProfessional}
+              </p>
             </div>
             <p className="text-sm text-muted-foreground">
               Você receberá uma confirmação no email cadastrado.
