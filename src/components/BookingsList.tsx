@@ -123,7 +123,7 @@ export const BookingsList = () => {
             selected={selectedDate}
             onSelect={setSelectedDate}
             locale={ptBR}
-            className="pointer-events-auto"
+            className="pointer-events-auto mx-auto"
             modifiers={{
               booked: datesWithBookings,
             }}
