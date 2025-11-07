@@ -2,106 +2,118 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
+/* Definição do sistema de design monocromático baseado no Azul SEBRAE (hsl(201 100% 35%))
 */
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 215 25% 15%;
+    /* Fundo e Texto (Tema Claro) */
+    --background: 201 100% 98%; /* Azul muito claro */
+    --foreground: 201 25% 15%; /* Azul-escuro "preto" */
 
-    --card: 0 0% 100%;
-    --card-foreground: 215 25% 15%;
+    /* Card/Popover (Tema Claro) */
+    --card: 0 0% 100%; /* Branco */
+    --card-foreground: 201 25% 15%; /* Azul-escuro "preto" */
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 15%;
+    --popover: 0 0% 100%; /* Branco */
+    --popover-foreground: 201 25% 15%;
 
-    --primary: 210 85% 55%;
-    --primary-foreground: 0 0% 100%;
+    /* Cor Primária (Azul SEBRAE) */
+    --primary: 201 100% 35%;
+    --primary-foreground: 0 0% 100%; /* Branco */
 
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 215 25% 15%;
+    /* Cor Secundária (Tons de azul claro) */
+    --secondary: 201 100% 96%;
+    --secondary-foreground: 201 25% 15%;
 
-    --muted: 210 30% 92%;
-    --muted-foreground: 215 15% 45%;
+    /* Cor Muted (Tons de azul-acinzentado) */
+    --muted: 201 80% 92%;
+    --muted-foreground: 201 15% 45%;
 
-    --accent: 155 65% 50%;
-    --accent-foreground: 0 0% 100%;
+    /* Cor de Destaque (Accent) - Agora também é o Azul SEBRAE */
+    --accent: 201 100% 35%;
+    --accent-foreground: 0 0% 100%; /* Branco */
 
+    /* Cor Destrutiva (Mantido Vermelho por usabilidade) */
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 210 25% 88%;
-    --input: 210 25% 88%;
-    --ring: 210 85% 55%;
+    /* Bordas e Inputs (Tons de azul-acinzentado) */
+    --border: 201 50% 88%;
+    --input: 201 50% 88%;
+    --ring: 201 100% 35%; /* Azul SEBRAE */
 
     --radius: 0.75rem;
     
-    --gradient-primary: linear-gradient(135deg, hsl(210 85% 55%), hsl(210 90% 65%));
-    --gradient-accent: linear-gradient(135deg, hsl(155 65% 50%), hsl(155 70% 60%));
-    --shadow-elegant: 0 10px 40px -10px hsl(210 85% 55% / 0.2);
+    /* Gradientes e Sombras (Baseado no Azul SEBRAE) */
+    --gradient-primary: linear-gradient(135deg, hsl(201 100% 35%), hsl(201 90% 45%));
+    --gradient-accent: linear-gradient(135deg, hsl(201 100% 35%), hsl(201 90% 45%)); /* Era verde, agora azul */
+    --shadow-elegant: 0 10px 40px -10px hsl(201 100% 35% / 0.2);
     --shadow-soft: 0 4px 20px -4px hsl(215 25% 15% / 0.1);
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Cores da Sidebar (Tema Claro - Azul) */
+    --sidebar-background: 201 40% 98%;
+    --sidebar-foreground: 201 25% 15%;
+    --sidebar-primary: 201 100% 35%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 201 80% 92%;
+    --sidebar-accent-foreground: 201 25% 15%;
+    --sidebar-border: 201 50% 88%;
+    --sidebar-ring: 201 100% 35%;
   }
 
   .dark {
-    --background: 215 30% 8%;
-    --foreground: 210 40% 98%;
+    /* Fundo e Texto (Tema Escuro) */
+    --background: 201 30% 8%; /* Azul muito escuro */
+    --foreground: 201 40% 98%; /* Azul muito claro (quase branco) */
 
-    --card: 215 28% 12%;
-    --card-foreground: 210 40% 98%;
+    /* Card/Popover (Tema Escuro) */
+    --card: 201 28% 12%;
+    --card-foreground: 201 40% 98%;
 
-    --popover: 215 28% 12%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 201 28% 12%;
+    --popover-foreground: 201 40% 98%;
 
-    --primary: 210 85% 60%;
-    --primary-foreground: 0 0% 100%;
+    /* Cor Primária (Azul SEBRAE - mais claro para modo escuro) */
+    --primary: 201 100% 50%;
+    --primary-foreground: 201 25% 15%; /* Azul-escuro "preto" */
 
-    --secondary: 215 25% 18%;
-    --secondary-foreground: 210 40% 98%;
+    /* Cor Secundária (Tons de azul escuro) */
+    --secondary: 201 25% 18%;
+    --secondary-foreground: 201 40% 98%;
 
-    --muted: 215 25% 16%;
-    --muted-foreground: 215 15% 60%;
+    /* Cor Muted (Tons de azul escuro-acinzentado) */
+    --muted: 201 25% 16%;
+    --muted-foreground: 201 15% 60%;
 
-    --accent: 155 65% 55%;
-    --accent-foreground: 0 0% 100%;
+    /* Cor de Destaque (Accent) - Agora também é o Azul SEBRAE */
+    --accent: 201 100% 50%;
+    --accent-foreground: 201 25% 15%;
 
+    /* Cor Destrutiva (Mantido Vermelho por usabilidade) */
     --destructive: 0 72% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 215 25% 20%;
-    --input: 215 25% 20%;
-    --ring: 210 85% 60%;
+    /* Bordas e Inputs (Tons de azul escuro) */
+    --border: 201 25% 20%;
+    --input: 201 25% 20%;
+    --ring: 201 100% 50%; /* Azul SEBRAE claro */
     
-    --gradient-primary: linear-gradient(135deg, hsl(210 85% 60%), hsl(210 90% 70%));
-    --gradient-accent: linear-gradient(135deg, hsl(155 65% 55%), hsl(155 70% 65%));
-    --shadow-elegant: 0 10px 40px -10px hsl(210 85% 60% / 0.3);
+    /* Gradientes e Sombras (Baseado no Azul SEBRAE) */
+    --gradient-primary: linear-gradient(135deg, hsl(201 100% 50%), hsl(201 90% 60%));
+    --gradient-accent: linear-gradient(135deg, hsl(201 100% 50%), hsl(201 90% 60%)); /* Era verde, agora azul */
+    --shadow-elegant: 0 10px 40px -10px hsl(201 100% 50% / 0.3);
     --shadow-soft: 0 4px 20px -4px hsl(0 0% 0% / 0.3);
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Cores da Sidebar (Tema Escuro - Azul) */
+    --sidebar-background: 201 30% 8%;
+    --sidebar-foreground: 201 40% 98%;
+    --sidebar-primary: 201 100% 50%;
+    --sidebar-primary-foreground: 201 25% 15%;
+    --sidebar-accent: 201 25% 16%;
+    --sidebar-accent-foreground: 201 40% 98%;
+    --sidebar-border: 201 25% 20%;
+    --sidebar-ring: 201 100% 50%;
   }
 }
 
