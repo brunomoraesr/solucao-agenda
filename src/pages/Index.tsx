@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 type SessionType = "escalda-pes" | "pilates" | "massagem" | "acupuntura";
 
@@ -116,10 +117,30 @@ const Index = () => {
   });
 
   useEffect(() => {
-    const savedBookings = localStorage.getItem("bookings");
-    if (savedBookings) {
-      setBookings(JSON.parse(savedBookings));
-    }
+    const fetchBookings = async () => {
+      const { data, error } = await supabase
+        .from("bookings")
+        .select("*");
+      
+      if (error) {
+        console.error("Erro ao buscar agendamentos:", error);
+        toast.error("Erro ao carregar agendamentos");
+        return;
+      }
+
+      if (data) {
+        const formattedBookings: Booking[] = data.map((booking) => ({
+          day: booking.day,
+          period: booking.period as "morning" | "afternoon",
+          time: booking.time,
+          professional: booking.professional as Professional,
+          sessionType: booking.session_type as SessionType,
+        }));
+        setBookings(formattedBookings);
+      }
+    };
+
+    fetchBookings();
   }, []);
 
   const handleDaySelect = (day: DaySchedule) => {
@@ -179,7 +200,7 @@ const Index = () => {
   };
 
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name || !formData.email || !formData.phone) {
@@ -192,6 +213,27 @@ const Index = () => {
       return;
     }
 
+    const { data, error } = await supabase
+      .from("bookings")
+      .insert({
+        day: selectedDay.day,
+        period: selectedPeriod,
+        time: selectedTime,
+        session_type: selectedSessionType,
+        professional: selectedProfessional,
+        user_name: formData.name,
+        user_email: formData.email,
+        user_phone: formData.phone,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Erro ao salvar agendamento:", error);
+      toast.error("Erro ao salvar agendamento. Tente novamente.");
+      return;
+    }
+
     const newBooking: Booking = {
       day: selectedDay.day,
       period: selectedPeriod,
@@ -200,11 +242,9 @@ const Index = () => {
       sessionType: selectedSessionType,
     };
 
-    const updatedBookings = [...bookings, newBooking];
-    setBookings(updatedBookings);
-    localStorage.setItem("bookings", JSON.stringify(updatedBookings));
-
+    setBookings([...bookings, newBooking]);
     setShowConfirmation(true);
+    toast.success("Agendamento realizado com sucesso!");
     
     setTimeout(() => {
       setShowConfirmation(false);
