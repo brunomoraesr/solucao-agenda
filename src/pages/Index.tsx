@@ -320,8 +320,8 @@ const Index = () => {
         {/* Bookings List Section */}
         {showBookings && <div className="max-w-4xl mx-auto animate-in slide-in-from-bottom duration-500">
             <Card className="p-8 shadow-soft border-border/50 backdrop-blur-sm bg-card/80">
-              <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">Agendamentos<CalendarCheck className="w-6 h-6 text-primary" />
-                Meus Agendamentos
+              <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2"><CalendarCheck className="w-6 h-6 text-primary" />
+                Agendamentos
               </h2>
               <BookingsList />
             </Card>

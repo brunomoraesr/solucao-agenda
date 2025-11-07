@@ -114,7 +114,7 @@ export const BookingsList = () => {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Calendário */}
       <div className="lg:col-span-1">
         <Card className="p-4 border-border/50 backdrop-blur-sm bg-card/80">
@@ -145,7 +145,7 @@ export const BookingsList = () => {
       </div>
 
       {/* Lista de agendamentos do dia selecionado */}
-      <div className="lg:col-span-2">
+      <div className="lg:col-span-1">
         <Card className="p-6 border-border/50 backdrop-blur-sm bg-card/80">
           <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
             <CalendarIcon className="w-5 h-5 text-primary" />
