@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 type SessionType = "escalda-pes" | "pilates" | "massagem" | "acupuntura";
 
@@ -58,7 +57,7 @@ const generateTimeSlots = (
   const slots: TimeSlot[] = [];
   const startHour = period === "morning" ? 8 : 14;
   const startMinute = period === "morning" ? 30 : 30;
-  const maxSlots = period === "morning" ? 4 : 8; // 4 slots de manhã, 8 à tarde
+  const maxSlots = period === "morning" ? 4 : 4; // 4 slots de manhã, 8 à tarde
 
   let currentHour = startHour;
   let currentMinute = startMinute;
@@ -66,7 +65,7 @@ const generateTimeSlots = (
 
   while (slotCount < maxSlots) {
     const timeString = `${currentHour.toString().padStart(2, "0")}:${currentMinute.toString().padStart(2, "0")}`;
-    
+
     // Check if pilates is only at 11h
     if (sessionType === "pilates" && day.pilatesOnlyAt11 && timeString !== "11:00") {
       currentMinute += 45;
@@ -117,30 +116,10 @@ const Index = () => {
   });
 
   useEffect(() => {
-    const fetchBookings = async () => {
-      const { data, error } = await supabase
-        .from("bookings")
-        .select("*");
-      
-      if (error) {
-        console.error("Erro ao buscar agendamentos:", error);
-        toast.error("Erro ao carregar agendamentos");
-        return;
-      }
-
-      if (data) {
-        const formattedBookings: Booking[] = data.map((booking) => ({
-          day: booking.day,
-          period: booking.period as "morning" | "afternoon",
-          time: booking.time,
-          professional: booking.professional as Professional,
-          sessionType: booking.session_type as SessionType,
-        }));
-        setBookings(formattedBookings);
-      }
-    };
-
-    fetchBookings();
+    const savedBookings = localStorage.getItem("bookings");
+    if (savedBookings) {
+      setBookings(JSON.parse(savedBookings));
+    }
   }, []);
 
   const handleDaySelect = (day: DaySchedule) => {
@@ -149,7 +128,7 @@ const Index = () => {
     setSelectedProfessional(null);
     setSelectedPeriod(null);
     setSelectedTime(null);
-    
+
     if (day.sessionTypes.length === 1) {
       setSelectedSessionType(day.sessionTypes[0]);
       setStep(3);
@@ -200,9 +179,9 @@ const Index = () => {
   };
 
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name || !formData.email || !formData.phone) {
       toast.error("Por favor, preencha todos os campos");
       return;
@@ -210,27 +189,6 @@ const Index = () => {
 
     if (!selectedDay || !selectedSessionType || !selectedProfessional || !selectedPeriod || !selectedTime) {
       toast.error("Por favor, complete todas as seleções");
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from("bookings")
-      .insert({
-        day: selectedDay.day,
-        period: selectedPeriod,
-        time: selectedTime,
-        session_type: selectedSessionType,
-        professional: selectedProfessional,
-        user_name: formData.name,
-        user_email: formData.email,
-        user_phone: formData.phone,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Erro ao salvar agendamento:", error);
-      toast.error("Erro ao salvar agendamento. Tente novamente.");
       return;
     }
 
@@ -242,10 +200,12 @@ const Index = () => {
       sessionType: selectedSessionType,
     };
 
-    setBookings([...bookings, newBooking]);
+    const updatedBookings = [...bookings, newBooking];
+    setBookings(updatedBookings);
+    localStorage.setItem("bookings", JSON.stringify(updatedBookings));
+
     setShowConfirmation(true);
-    toast.success("Agendamento realizado com sucesso!");
-    
+
     setTimeout(() => {
       setShowConfirmation(false);
       setStep(1);
@@ -260,34 +220,34 @@ const Index = () => {
 
   const getAvailableSessionTypes = (): SessionType[] => {
     if (!selectedDay) return [];
-    
+
     if (selectedDay.day === "Terça-feira") {
       return selectedDay.periods.map((p) =>
         p === "morning" ? "pilates" : "massagem"
       ) as SessionType[];
     }
-    
+
     if (selectedDay.day === "Quinta-feira") {
       if (selectedDay.periods.includes("morning") && selectedDay.periods.includes("afternoon")) {
         return ["escalda-pes", "pilates", "massagem"] as SessionType[];
       }
     }
-    
+
     return selectedDay.sessionTypes;
   };
 
   const getAvailablePeriodsForSession = (): ("morning" | "afternoon")[] => {
     if (!selectedDay || !selectedSessionType) return selectedDay?.periods || [];
-    
+
     if (selectedDay.day === "Terça-feira") {
       return selectedSessionType === "pilates" ? (["morning"] as const) : (["afternoon"] as const);
     }
-    
+
     if (selectedDay.day === "Quinta-feira") {
       if (selectedSessionType === "massagem") return ["afternoon"] as const;
       return ["morning"] as const;
     }
-    
+
     return selectedDay.periods;
   };
 
@@ -297,7 +257,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/30 to-accent/10">
       <div className="container mx-auto px-4 py-12 relative">
-        
+
         {step > 1 && (
           <Button
             variant="ghost"
@@ -334,11 +294,10 @@ const Index = () => {
                 <Fragment key={s}>
                   <div className="flex flex-col items-center text-center" style={{ width: '4.5rem' }}>
                     <div
-                      className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
-                        step >= s
+                      className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${step >= s
                           ? "bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-elegant scale-110"
                           : "bg-muted text-muted-foreground"
-                      }`}
+                        }`}
                     >
                       {s}
                     </div>
@@ -348,9 +307,8 @@ const Index = () => {
                   </div>
                   {s < 5 && (
                     <div
-                      className={`flex-1 h-1 rounded-full transition-all duration-300 mt-4 ${
-                        step > s ? "bg-gradient-to-r from-primary to-accent" : "bg-muted"
-                      }`}
+                      className={`flex-1 h-1 rounded-full transition-all duration-300 mt-4 ${step > s ? "bg-gradient-to-r from-primary to-accent" : "bg-muted"
+                        }`}
                       style={{ minWidth: '2rem' }}
                     />
                   )}
@@ -502,14 +460,13 @@ const Index = () => {
                       key={period}
                       onClick={() => handlePeriodSelect(period)}
                       variant={selectedPeriod === period ? "default" : "outline"}
-                      className={`flex-1 h-14 text-base transition-all duration-300 ${
-                        selectedPeriod === period
+                      className={`flex-1 h-14 text-base transition-all duration-300 ${selectedPeriod === period
                           ? "shadow-elegant scale-105"
                           // === AJUSTE DE COR DO TEXTO NO HOVER ===
                           : "hover:border-primary hover:bg-primary/5 hover:text-primary"
-                      }`}
+                        }`}
                     >
-                      {period === "morning" ? "Manhã (08:30 - 12:00)" : "Tarde (14:30 - 18:00)"}
+                      {period === "morning" ? "Manhã (08:30 - 12:00)" : "Tarde (14:30 - 17:30)"}
                     </Button>
                   ))}
                 </div>
@@ -530,14 +487,13 @@ const Index = () => {
                           onClick={() => handleTimeSelect(slot.time)}
                           variant={selectedTime === slot.time ? "default" : "outline"}
                           disabled={!isAvailable}
-                          className={`h-14 text-base font-semibold transition-all duration-300 ${
-                            selectedTime === slot.time
+                          className={`h-14 text-base font-semibold transition-all duration-300 ${selectedTime === slot.time
                               ? "shadow-elegant scale-105"
                               : isAvailable
-                              // === AJUSTE DE COR DO TEXTO NO HOVER (E BORDA) ===
-                              ? "hover:border-primary hover:bg-primary/5 hover:text-primary"
-                              : "opacity-50 cursor-not-allowed"
-                          }`}
+                                // === AJUSTE DE COR DO TEXTO NO HOVER (E BORDA) ===
+                                ? "hover:border-primary hover:bg-primary/5 hover:text-primary"
+                                : "opacity-50 cursor-not-allowed"
+                            }`}
                         >
                           {slot.time}
                         </Button>
