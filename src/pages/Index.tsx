@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Calendar, Clock, User, Mail, Phone, CheckCircle2, Users } from "lucide-react";
+import { useState, useEffect, Fragment } from "react";
+import { Calendar, Clock, User, Mail, Phone, CheckCircle2, Users, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -162,6 +162,23 @@ const Index = () => {
     setStep(5);
   };
 
+  const handleBack = () => {
+    if (step === 5) {
+      setStep(4);
+    } else if (step === 4) {
+      setStep(3);
+    } else if (step === 3) {
+      if (selectedDay && selectedDay.sessionTypes.length === 1) {
+        setStep(1);
+      } else {
+        setStep(2);
+      }
+    } else if (step === 2) {
+      setStep(1);
+    }
+  };
+
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -239,7 +256,22 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/30 to-accent/10">
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-12 relative">
+        
+        {step > 1 && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleBack}
+            className="absolute top-8 left-4 md:top-12 md:left-8 w-12 h-12 z-10
+                       bg-card/80 border border-border hover:bg-card shadow-md
+                       transition-all duration-300 rounded-full"
+            aria-label="Voltar à etapa anterior"
+          >
+            <ArrowLeft className="w-6 h-6 text-primary" />
+          </Button>
+        )}
+
         {/* Header */}
         <div className="text-center mb-12 animate-in fade-in duration-700">
           <div className="inline-flex items-center justify-center w-16 h-16 mb-4 rounded-2xl bg-gradient-to-br from-primary to-accent shadow-elegant">
@@ -254,35 +286,37 @@ const Index = () => {
         </div>
 
         {/* Progress Steps */}
-        <div className="max-w-4xl mx-auto mb-8">
-          <div className="flex items-center justify-center gap-2">
-            {[1, 2, 3, 4, 5].map((s) => (
-              <div key={s} className="flex items-center">
-                <div
-                  className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
-                    step >= s
-                      ? "bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-elegant scale-110"
-                      : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {s}
-                </div>
-                {s < 5 && (
-                  <div
-                    className={`w-12 h-1 mx-1 rounded-full transition-all duration-300 ${
-                      step > s ? "bg-gradient-to-r from-primary to-accent" : "bg-muted"
-                    }`}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="flex justify-between mt-3 text-xs font-medium px-2">
-            <span className={step >= 1 ? "text-primary" : "text-muted-foreground"}>Dia</span>
-            <span className={step >= 2 ? "text-primary" : "text-muted-foreground"}>Sessão</span>
-            <span className={step >= 3 ? "text-primary" : "text-muted-foreground"}>Profissional</span>
-            <span className={step >= 4 ? "text-primary" : "text-muted-foreground"}>Horário</span>
-            <span className={step >= 5 ? "text-primary" : "text-muted-foreground"}>Dados</span>
+        <div className="max-w-4xl mx-auto mb-12">
+          <div className="flex items-start justify-center px-2">
+            {["Dia", "Sessão", "Profissional", "Horário", "Dados"].map((label, index) => {
+              const s = index + 1;
+              return (
+                <Fragment key={s}>
+                  <div className="flex flex-col items-center text-center" style={{ width: '4.5rem' }}>
+                    <div
+                      className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
+                        step >= s
+                          ? "bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-elegant scale-110"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {s}
+                    </div>
+                    <span className={`mt-2 text-xs font-medium ${step >= s ? "text-primary" : "text-muted-foreground"}`}>
+                      {label}
+                    </span>
+                  </div>
+                  {s < 5 && (
+                    <div
+                      className={`flex-1 h-1 rounded-full transition-all duration-300 mt-4 ${
+                        step > s ? "bg-gradient-to-r from-primary to-accent" : "bg-muted"
+                      }`}
+                      style={{ minWidth: '2rem' }}
+                    />
+                  )}
+                </Fragment>
+              );
+            })}
           </div>
         </div>
 
@@ -331,7 +365,7 @@ const Index = () => {
               <div className="mb-6">
                 <Button
                   variant="ghost"
-                  onClick={() => setStep(1)}
+                  onClick={handleBack}
                   className="mb-4 hover:bg-primary/10"
                 >
                   ← Voltar
@@ -349,7 +383,8 @@ const Index = () => {
                     key={sessionType}
                     onClick={() => handleSessionTypeSelect(sessionType)}
                     variant="outline"
-                    className="h-20 text-lg font-semibold hover:border-primary hover:bg-primary/5 transition-all duration-300 hover:scale-105"
+                    // === AJUSTE DE COR DO TEXTO NO HOVER ===
+                    className="h-20 text-lg font-semibold hover:border-primary hover:bg-primary/5 hover:text-primary transition-all duration-300 hover:scale-105"
                   >
                     {sessionTypeLabels[sessionType]}
                   </Button>
@@ -366,7 +401,7 @@ const Index = () => {
               <div className="mb-6">
                 <Button
                   variant="ghost"
-                  onClick={() => setStep(selectedDay.sessionTypes.length === 1 ? 1 : 2)}
+                  onClick={handleBack}
                   className="mb-4 hover:bg-primary/10"
                 >
                   ← Voltar
@@ -386,7 +421,8 @@ const Index = () => {
                     key={professional}
                     onClick={() => handleProfessionalSelect(professional)}
                     variant="outline"
-                    className="h-24 text-xl font-semibold hover:border-accent hover:bg-accent/5 transition-all duration-300 hover:scale-105"
+                    // === AJUSTE DE COR DO TEXTO NO HOVER ===
+                    className="h-24 text-xl font-semibold hover:border-accent hover:bg-accent/5 hover:text-primary transition-all duration-300 hover:scale-105"
                   >
                     {professional}
                   </Button>
@@ -403,7 +439,7 @@ const Index = () => {
               <div className="mb-6">
                 <Button
                   variant="ghost"
-                  onClick={() => setStep(3)}
+                  onClick={handleBack}
                   className="mb-4 hover:bg-primary/10"
                 >
                   ← Voltar
@@ -429,7 +465,8 @@ const Index = () => {
                       className={`flex-1 h-14 text-base transition-all duration-300 ${
                         selectedPeriod === period
                           ? "shadow-elegant scale-105"
-                          : "hover:border-primary hover:bg-primary/5"
+                          // === AJUSTE DE COR DO TEXTO NO HOVER ===
+                          : "hover:border-primary hover:bg-primary/5 hover:text-primary"
                       }`}
                     >
                       {period === "morning" ? "Manhã (08:30 - 12:00)" : "Tarde (14:30 - 18:00)"}
@@ -457,7 +494,8 @@ const Index = () => {
                             selectedTime === slot.time
                               ? "shadow-elegant scale-105"
                               : isAvailable
-                              ? "hover:border-accent hover:bg-accent/5"
+                              // === AJUSTE DE COR DO TEXTO NO HOVER (E BORDA) ===
+                              ? "hover:border-primary hover:bg-primary/5 hover:text-primary"
                               : "opacity-50 cursor-not-allowed"
                           }`}
                         >
@@ -484,7 +522,7 @@ const Index = () => {
               <div className="mb-6">
                 <Button
                   variant="ghost"
-                  onClick={() => setStep(4)}
+                  onClick={handleBack}
                   className="mb-4 hover:bg-primary/10"
                 >
                   ← Voltar
