@@ -91,10 +91,33 @@ const generateTimeSlots = (
   sessionType: SessionType | null,
   bookings: Booking[],
 ): TimeSlot[] => {
+  // --- CORREÇÃO DO BUG: Trata o caso Pilates Only At 11h separadamente para evitar loop infinito ---
+  if (sessionType === "pilates" && day.pilatesOnlyAt11) {
+    const timeString = "11:00";
+    
+    // A lógica 'pilatesOnlyAt11' é para o período da manhã (11:00).
+    if (period !== "morning") {
+        return [];
+    }
+
+    const availableFor: Professional[] = professionals.filter((prof) => {
+      return !bookings.some(
+        (booking) =>
+          booking.day === day.day &&
+          booking.period === period &&
+          booking.time === timeString &&
+          booking.professional === prof,
+      );
+    });
+
+    return [{ time: timeString, availableFor }];
+  }
+  // --- FIM CORREÇÃO DO BUG ---
+
   const slots: TimeSlot[] = [];
   const startHour = period === "morning" ? 8 : 14;
   const startMinute = period === "morning" ? 30 : 30;
-  const maxSlots = period === "morning" ? 4 : 4; // 4 slots de manhã, 8 à tarde
+  const maxSlots = period === "morning" ? 4 : 4; // 4 slots de 45 minutos em cada período
 
   let currentHour = startHour;
   let currentMinute = startMinute;
@@ -104,20 +127,6 @@ const generateTimeSlots = (
     const timeString = `${currentHour
       .toString()
       .padStart(2, "0")}:${currentMinute.toString().padStart(2, "0")}`;
-
-    // Check if pilates is only at 11h
-    if (
-      sessionType === "pilates" &&
-      day.pilatesOnlyAt11 &&
-      timeString !== "11:00"
-    ) {
-      currentMinute += 45;
-      if (currentMinute >= 60) {
-        currentHour += Math.floor(currentMinute / 60);
-        currentMinute = currentMinute % 60;
-      }
-      continue;
-    }
 
     // Check which professionals are available for this slot
     const availableFor: Professional[] = professionals.filter((prof) => {
@@ -490,7 +499,7 @@ const Index = () => {
                 <h2 className="text-2xl font-semibold flex items-center gap-2">
                   <Users className="w-6 h-6 text-primary" />
                   Escolha a Profissional
-                </h2>
+                </h2 >
                 <p className="text-muted-foreground mt-2">
                   {selectedDay.day} • {sessionTypeLabels[selectedSessionType]}
                 </p>
