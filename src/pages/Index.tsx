@@ -8,8 +8,10 @@ import {
   CheckCircle2,
   Users,
   ArrowLeft,
-  Hash, // Ícone adicionado
+  Hash,
+  CalendarCheck,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,6 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { BookingsList } from "@/components/BookingsList";
 
 type SessionType = "escalda-pes" | "pilates" | "massagem" | "acupuntura";
 
@@ -174,11 +177,31 @@ const Index = () => {
   });
 
   useEffect(() => {
-    const savedBookings = localStorage.getItem("bookings");
-    if (savedBookings) {
-      setBookings(JSON.parse(savedBookings));
-    }
+    fetchBookings();
   }, []);
+
+  const fetchBookings = async () => {
+    const { data, error } = await supabase
+      .from("bookings")
+      .select("*");
+    
+    if (error) {
+      console.error("Erro ao buscar agendamentos:", error);
+      toast.error("Erro ao carregar agendamentos");
+      return;
+    }
+
+    if (data) {
+      const formattedBookings: Booking[] = data.map((booking) => ({
+        day: booking.day,
+        period: booking.period as "morning" | "afternoon",
+        time: booking.time,
+        professional: booking.professional as Professional,
+        sessionType: booking.session_type as SessionType,
+      }));
+      setBookings(formattedBookings);
+    }
+  };
 
   const handleDaySelect = (day: DaySchedule) => {
     setSelectedDay(day);
@@ -236,7 +259,7 @@ const Index = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.name || !formData.email || !formData.phone) {
@@ -255,18 +278,27 @@ const Index = () => {
       return;
     }
 
-    const newBooking: Booking = {
-      day: selectedDay.day,
-      period: selectedPeriod,
-      time: selectedTime,
-      professional: selectedProfessional,
-      sessionType: selectedSessionType,
-    };
+    const { error } = await supabase
+      .from("bookings")
+      .insert({
+        day: selectedDay.day,
+        period: selectedPeriod,
+        time: selectedTime,
+        professional: selectedProfessional,
+        session_type: selectedSessionType,
+        user_name: formData.name,
+        user_email: formData.email,
+        user_phone: formData.phone,
+      });
 
-    const updatedBookings = [...bookings, newBooking];
-    setBookings(updatedBookings);
-    localStorage.setItem("bookings", JSON.stringify(updatedBookings));
+    if (error) {
+      console.error("Erro ao criar agendamento:", error);
+      toast.error("Erro ao criar agendamento");
+      return;
+    }
 
+    toast.success("Agendamento criado com sucesso!");
+    await fetchBookings();
     setShowConfirmation(true);
 
     setTimeout(() => {
@@ -277,7 +309,6 @@ const Index = () => {
       setSelectedProfessional(null);
       setSelectedPeriod(null);
       setSelectedTime(null);
-      // Reset do formulário atualizado
       setFormData({ name: "", email: "", phone: "", ramal: "" });
     }, 3000);
   };
@@ -332,6 +363,8 @@ const Index = () => {
         )
       : [];
 
+  const [showBookings, setShowBookings] = useState(false);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/30 to-accent/10">
       <div className="container mx-auto px-4 py-12 relative">
@@ -360,10 +393,21 @@ const Index = () => {
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Escolha o melhor horário para sua sessão de 45 minutos
           </p>
+          <div className="mt-6">
+            <Button
+              onClick={() => setShowBookings(!showBookings)}
+              variant="outline"
+              className="gap-2"
+            >
+              <CalendarCheck className="w-5 h-5" />
+              {showBookings ? "Voltar ao Agendamento" : "Ver Meus Agendamentos"}
+            </Button>
+          </div>
         </div>
 
         {/* Progress Steps */}
-        <div className="max-w-4xl mx-auto mb-12">
+        {!showBookings && (
+          <div className="max-w-4xl mx-auto mb-12">
           <div className="flex items-start justify-center px-2">
             {["Dia", "Sessão", "Profissional", "Horário", "Dados"].map(
               (label, index) => {
@@ -407,9 +451,23 @@ const Index = () => {
             )}
           </div>
         </div>
+        )}
+
+        {/* Bookings List Section */}
+        {showBookings && (
+          <div className="max-w-4xl mx-auto animate-in slide-in-from-bottom duration-500">
+            <Card className="p-8 shadow-soft border-border/50 backdrop-blur-sm bg-card/80">
+              <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
+                <CalendarCheck className="w-6 h-6 text-primary" />
+                Meus Agendamentos
+              </h2>
+              <BookingsList />
+            </Card>
+          </div>
+        )}
 
         {/* Step 1: Day Selection */}
-        {step === 1 && (
+        {!showBookings && step === 1 && (
           <div className="max-w-4xl mx-auto animate-in slide-in-from-bottom duration-500">
             <Card className="p-8 shadow-soft border-border/50 backdrop-blur-sm bg-card/80">
               <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
@@ -449,7 +507,7 @@ const Index = () => {
         )}
 
         {/* Step 2: Session Type Selection */}
-        {step === 2 && selectedDay && (
+        {!showBookings && step === 2 && selectedDay && (
           <div className="max-w-4xl mx-auto animate-in slide-in-from-bottom duration-500">
             <Card className="p-8 shadow-soft border-border/50 backdrop-blur-sm bg-card/80">
               <div className="mb-6">
@@ -485,7 +543,7 @@ const Index = () => {
         )}
 
         {/* Step 3: Professional Selection */}
-        {step === 3 && selectedDay && selectedSessionType && (
+        {!showBookings && step === 3 && selectedDay && selectedSessionType && (
           <div className="max-w-4xl mx-auto animate-in slide-in-from-bottom duration-500">
             <Card className="p-8 shadow-soft border-border/50 backdrop-blur-sm bg-card/80">
               <div className="mb-6">
@@ -617,7 +675,7 @@ const Index = () => {
         )}
 
         {/* Step 5: User Information */}
-        {step === 5 && (
+        {!showBookings && step === 5 && (
           <div className="max-w-2xl mx-auto animate-in slide-in-from-bottom duration-500">
             <Card className="p-8 shadow-soft border-border/50 backdrop-blur-sm bg-card/80">
               <div className="mb-6">
