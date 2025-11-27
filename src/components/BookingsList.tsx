@@ -3,13 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Calendar as CalendarIcon, Clock, User, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Calendar } from "@/components/ui/calendar";
-import { format, parse, isSameDay } from "date-fns";
+import { format, parseISO, isSameDay, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
 
 type BookingData = {
   id: string;
-  day: string;
+  day: string; // formato: YYYY-MM-DD ou nome do dia antigo
   period: string;
   time: string;
   session_type: string;
@@ -27,16 +27,6 @@ const sessionTypeLabels: Record<string, string> = {
   acupuntura: "Acupuntura",
 };
 
-const dayOfWeekMap: Record<string, number> = {
-  "Segunda-feira": 1,
-  "Terça-feira": 2,
-  "Quarta-feira": 3,
-  "Quinta-feira": 4,
-  "Sexta-feira": 5,
-  "Sábado": 6,
-  "Domingo": 0,
-};
-
 export const BookingsList = () => {
   const [bookings, setBookings] = useState<BookingData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,7 +41,7 @@ export const BookingsList = () => {
     const { data, error } = await supabase
       .from("bookings")
       .select("*")
-      .order("created_at", { ascending: false });
+      .order("day", { ascending: true });
 
     if (error) {
       console.error("Erro ao buscar agendamentos:", error);
@@ -64,41 +54,37 @@ export const BookingsList = () => {
     setLoading(false);
   };
 
-  // Função para encontrar a próxima data que corresponde ao dia da semana
-  const getNextDateForDayOfWeek = (dayName: string, referenceDate: Date = new Date()): Date => {
-    const targetDayOfWeek = dayOfWeekMap[dayName];
-    const currentDayOfWeek = referenceDate.getDay();
-    
-    let daysToAdd = targetDayOfWeek - currentDayOfWeek;
-    if (daysToAdd < 0) {
-      daysToAdd += 7;
+  // Função para converter o campo day para Date
+  const parseBookingDate = (dayStr: string): Date | null => {
+    // Tenta parsear como data ISO (YYYY-MM-DD)
+    const parsed = parseISO(dayStr);
+    if (isValid(parsed)) {
+      return parsed;
     }
-    
-    const resultDate = new Date(referenceDate);
-    resultDate.setDate(resultDate.getDate() + daysToAdd);
-    return resultDate;
+    return null;
   };
 
-  // Agrupar agendamentos por data
+  // Filtrar agendamentos para a data selecionada
   const getBookingsForDate = (date: Date) => {
-    return bookings.filter((booking) => {
-      const bookingDate = getNextDateForDayOfWeek(booking.day, date);
-      return isSameDay(bookingDate, date);
-    });
+    return bookings
+      .filter((booking) => {
+        const bookingDate = parseBookingDate(booking.day);
+        return bookingDate && isSameDay(bookingDate, date);
+      })
+      .sort((a, b) => a.time.localeCompare(b.time));
   };
 
   // Obter todos os dias com agendamentos
-  const getDatesWithBookings = () => {
+  const getDatesWithBookings = (): Date[] => {
     const dates: Date[] = [];
-    const today = new Date();
-    
+
     bookings.forEach((booking) => {
-      const bookingDate = getNextDateForDayOfWeek(booking.day, today);
-      if (!dates.some(d => isSameDay(d, bookingDate))) {
+      const bookingDate = parseBookingDate(booking.day);
+      if (bookingDate && !dates.some((d) => isSameDay(d, bookingDate))) {
         dates.push(bookingDate);
       }
     });
-    
+
     return dates;
   };
 
@@ -129,9 +115,9 @@ export const BookingsList = () => {
             }}
             modifiersStyles={{
               booked: {
-                fontWeight: 'bold',
-                backgroundColor: 'hsl(var(--primary) / 0.1)',
-                color: 'hsl(var(--primary))',
+                fontWeight: "bold",
+                backgroundColor: "hsl(var(--primary) / 0.1)",
+                color: "hsl(var(--primary))",
               },
             }}
           />
@@ -149,14 +135,12 @@ export const BookingsList = () => {
         <Card className="p-6 border-border/50 backdrop-blur-sm bg-card/80">
           <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
             <CalendarIcon className="w-5 h-5 text-primary" />
-            {selectedDate ? format(selectedDate, "EEEE, d 'de' MMMM", { locale: ptBR }) : "Selecione uma data"}
+            {selectedDate
+              ? format(selectedDate, "EEEE, d 'de' MMMM", { locale: ptBR })
+              : "Selecione uma data"}
           </h3>
-          
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-            </div>
-          ) : selectedDateBookings.length === 0 ? (
+
+          {selectedDateBookings.length === 0 ? (
             <div className="text-center py-12">
               <CalendarIcon className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
               <p className="text-lg text-muted-foreground">
@@ -183,7 +167,7 @@ export const BookingsList = () => {
                         {sessionTypeLabels[booking.session_type] || booking.session_type}
                       </span>
                     </div>
-                    
+
                     <div className="flex items-center gap-4 text-sm">
                       <div className="flex items-center gap-2">
                         <User className="w-4 h-4 text-muted-foreground" />
