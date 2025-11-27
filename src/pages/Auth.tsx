@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Mail, Lock, Calendar, Loader2 } from "lucide-react";
 import { z } from "zod";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const ALLOWED_DOMAIN = "@pi.sebrae.com.br";
 
@@ -26,29 +27,41 @@ const Auth = () => {
   const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const { role, loading: roleLoading } = useUserRole(currentUser);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (session) {
-          navigate("/");
+          setCurrentUser(session.user);
         }
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        navigate("/");
+        setCurrentUser(session.user);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, []);
+
+  useEffect(() => {
+    if (currentUser && !roleLoading) {
+      if (role === "professional") {
+        navigate("/professional");
+      } else {
+        navigate("/");
+      }
+    }
+  }, [currentUser, role, roleLoading, navigate]);
 
   const validateForm = () => {
     try {
